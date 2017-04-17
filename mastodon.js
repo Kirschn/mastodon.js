@@ -2,7 +2,7 @@
 // by @kirschn@pleasehug.me 2017
 // no fucking copyright
 // do whatever you want with it
-// but please don't hurt it
+// but please don't hurt it (and keep this header)
 
 var MastodonAPI = function(config) {
     var apiBase = config.instance + "/api/v1/";
