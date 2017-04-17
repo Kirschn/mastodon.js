@@ -7,6 +7,12 @@
 var MastodonAPI = function(config) {
     var apiBase = config.instance + "/api/v1/";
     return {
+        setConfig: function (key, value) {
+            config[key] = value;
+        },
+        getConfig: function(key) {
+            return config[key];
+        },
         get: function (endpoint) {
             // variables
             var queryData, callback,
@@ -34,7 +40,7 @@ var MastodonAPI = function(config) {
             $.ajax({
                 url: apiBase + endpoint + queryStringAppend,
                 type: "GET",
-                headers: {"Authorisation": " " + config.api_user_token},
+                headers: {"Authorisation": "Bearer " + config.api_user_token},
                 success: function(data, textStatus) {
 
                     //weeey it was successful
@@ -60,7 +66,7 @@ var MastodonAPI = function(config) {
                 url: apiBase + endpoint,
                 type: "POST",
                 data: postData,
-                headers: {"Authorisation": " " + config.api_user_token},
+                headers: {"Authorisation": "Bearer " + config.api_user_token},
                 success: function(data, textStatus) {
                     console.log("Successful POST API request to " +apiBase+endpoint);
                     callback(data,textStatus)
@@ -71,12 +77,57 @@ var MastodonAPI = function(config) {
             $.ajax({
                 url: apiBase + endpoint,
                 type: "DELETE",
-                headers: {"Authorisation": " " + config.api_user_token},
+                headers: {"Authorisation": "Bearer " + config.api_user_token},
                 success: function(data, textStatus) {
                     console.log("Successful DELETE API request to " +apiBase+endpoint);
                     callback(data,textStatus)
                 }
             });
+        },
+        stream: function (endpoint, onData) {
+            // Event Stream Support
+            // using a polyfill needed for the auth header
+            // https://github.com/Yaffle/EventSource/
+            var es = new EventSource(apiBase + endpoint, { authorizationHeader: "Bearer " + config.api_user_token});
+            var listener = function (event) {
+                console.log("Got Data from Stream " + endpoint);
+                onData(event);
+            };
+            es.addEventListener("open", listener);
+            es.addEventListener("message", listener);
+            es.addEventListener("error", listener);
+
+        },
+        registerApplication: function (client_name, redirect_uri, scopes, website, callback) {
+            //register a new application
+            //determine which parameters we got
+            if (website === null) {
+                website = "";
+            }
+            // build scope array to string for the api request
+            var scopeBuild = "";
+            if (typeof scopes === "object"){
+                scopes.join(" ");
+            }
+            $.ajax({
+                url: apiBase + endpoint,
+                type: "POST",
+                data: {
+                    "client_name": client_name,
+                    "redirect_uris": redirect_uri,
+                    "scopes": scopes,
+                    "website": website
+                },
+                headers: {"Authorisation": "Bearer " + config.api_user_token},
+                success: function (data, textStatus) {
+                    console.log("Registered Application: " + data);
+                    callback(JSON.stringify(data));
+                }
+            });
+        },
+        generateAuthLink: function (client_id, redirect_uri, responseType, scopes) {
+            return config.instance + "/oauth/authorize?client_id=" + cliend_id + "&redirect_uri=" + redirect_uri +
+                    "&response_type=" + responseType + "&scope=" + scopes.join("+");
         }
     };
 };
