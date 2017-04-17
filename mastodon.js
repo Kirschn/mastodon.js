@@ -8,12 +8,21 @@ var MastodonAPI = function(config) {
     var apiBase = config.instance + "/api/v1/";
     return {
         setConfig: function (key, value) {
+            // modify initial config afterwards
             config[key] = value;
         },
         getConfig: function(key) {
+            //get config key
             return config[key];
         },
         get: function (endpoint) {
+            // for GET API calls
+            // can be called with two or three parameters
+            // endpoint, callback
+            // or
+            // endpoint, queryData, callback
+            // where querydata is an object {["paramname1", "paramvalue1], ["paramname2","paramvalue2"]}
+
             // variables
             var queryData, callback,
                 queryStringAppend = "?";
@@ -53,6 +62,7 @@ var MastodonAPI = function(config) {
             });
         },
         post: function (endpoint) {
+            // for POST API calls
             var postData, callback;
             // check with which arguments we're supplied
             if (typeof arguments[1] === "function") {
@@ -74,6 +84,7 @@ var MastodonAPI = function(config) {
             });
         },
         delete: function (endpoint, callback) {
+            // for DELETE API calls.
             $.ajax({
                 url: apiBase + endpoint,
                 type: "DELETE",
@@ -88,6 +99,9 @@ var MastodonAPI = function(config) {
             // Event Stream Support
             // websocket streaming is undocumented. i had to reverse engineer the fucking web client.
             // streamType is either public or the federated tl oder user for notifications, home tl, etc.
+            // callback gets called whenever new data ist recieved
+            // callback { event: (eventtype), payload: {mastodon object as described in the api docs} }
+            // eventtype could be notification (=notification) or update (= new toot in TL)
             var es = new WebSocket("wss://" + apiBase.substr(8)
                 +"streaming?access_token=" + config.api_user_token + "&stream=" + streamType);
             var listener = function (event) {
