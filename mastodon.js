@@ -40,7 +40,7 @@ var MastodonAPI = function(config) {
             $.ajax({
                 url: apiBase + endpoint + queryStringAppend,
                 type: "GET",
-                headers: {"Authorisation": "Bearer " + config.api_user_token},
+                headers: {"Authorization": "Bearer " + config.api_user_token},
                 success: function(data, textStatus) {
 
                     //weeey it was successful
@@ -66,7 +66,7 @@ var MastodonAPI = function(config) {
                 url: apiBase + endpoint,
                 type: "POST",
                 data: postData,
-                headers: {"Authorisation": "Bearer " + config.api_user_token},
+                headers: {"Authorization": "Bearer " + config.api_user_token},
                 success: function(data, textStatus) {
                     console.log("Successful POST API request to " +apiBase+endpoint);
                     callback(data,textStatus)
@@ -77,29 +77,39 @@ var MastodonAPI = function(config) {
             $.ajax({
                 url: apiBase + endpoint,
                 type: "DELETE",
-                headers: {"Authorisation": "Bearer " + config.api_user_token},
+                headers: {"Authorization": "Bearer " + config.api_user_token},
                 success: function(data, textStatus) {
                     console.log("Successful DELETE API request to " +apiBase+endpoint);
                     callback(data,textStatus)
                 }
             });
         },
-        stream: function (endpoint, onData) {
+        stream: function (streamType, onData) {
             // Event Stream Support
-            // using a polyfill needed for the auth header
-            // https://github.com/Yaffle/EventSource/
-            var es = new EventSource(apiBase + endpoint, { authorizationHeader: "Bearer " + config.api_user_token});
+            // websocket streaming is undocumented. i had to reverse engineer the fucking web client.
+            // streamType is either public or the federated tl oder user for notifications, home tl, etc.
+            var es = new WebSocket("wss://" + apiBase.substr(8)
+                +"streaming?access_token=" + config.api_user_token + "&stream=" + streamType);
             var listener = function (event) {
-                console.log("Got Data from Stream " + endpoint);
+                console.log("Got Data from Stream " + streamType);
+                event = JSON.parse(event.data);
+                event.payload = JSON.parse(event.payload);
                 onData(event);
             };
-            es.addEventListener("open", listener);
-            es.addEventListener("message", listener);
-            es.addEventListener("error", listener);
+            es.onmessage = listener;
+
 
         },
         registerApplication: function (client_name, redirect_uri, scopes, website, callback) {
             //register a new application
+
+            // OAuth Auth flow:
+            // First register the application
+            // 2) get a access code from a user (using the link, generation function below!)
+            // 3) insert the data you got from the application and the code from the user into
+            // getAccessTokenFromAuthCode. Note: scopes has to be an array, every time!
+            // For example ["read", "write"]
+
             //determine which parameters we got
             if (website === null) {
                 website = "";
@@ -110,24 +120,40 @@ var MastodonAPI = function(config) {
                 scopes.join(" ");
             }
             $.ajax({
-                url: apiBase + endpoint,
+                url: apiBase + "apps",
                 type: "POST",
                 data: {
-                    "client_name": client_name,
-                    "redirect_uris": redirect_uri,
-                    "scopes": scopes,
-                    "website": website
+                    client_name: client_name,
+                    redirect_uris: redirect_uri,
+                    scopes: scopes,
+                    website: website
                 },
-                headers: {"Authorisation": "Bearer " + config.api_user_token},
                 success: function (data, textStatus) {
                     console.log("Registered Application: " + data);
-                    callback(JSON.stringify(data));
+                    callback(data);
                 }
             });
         },
         generateAuthLink: function (client_id, redirect_uri, responseType, scopes) {
-            return config.instance + "/oauth/authorize?client_id=" + cliend_id + "&redirect_uri=" + redirect_uri +
+            return config.instance + "/oauth/authorize?client_id=" + client_id + "&redirect_uri=" + redirect_uri +
                     "&response_type=" + responseType + "&scope=" + scopes.join("+");
+        },
+        getAccessTokenFromAuthCode: function (client_id, client_secret, redirect_uri, code, callback) {
+            $.ajax({
+                url: config.instance + "/oauth/token",
+                type: "POST",
+                data: {
+                    client_id: client_id,
+                    client_secret: client_secret,
+                    redirect_uri: redirect_uri,
+                    grant_type: "authorization_code",
+                    code: code
+                },
+                success: function (data, textStatus) {
+                    console.log("Got Token: " + data);
+                    callback(data);
+                }
+            });
         }
     };
 };
