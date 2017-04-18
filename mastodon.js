@@ -130,8 +130,8 @@ var MastodonAPI = function(config) {
             }
             // build scope array to string for the api request
             var scopeBuild = "";
-            if (typeof scopes === "object"){
-                scopes.join(" ");
+            if (typeof scopes !== "string") {
+                scopes = scopes.join(" ");
             }
             $.ajax({
                 url: apiBase + "apps",
@@ -173,4 +173,4 @@ var MastodonAPI = function(config) {
 };
 
 // node.js
-if (module !== undefined) { module.exports = MastodonAPI; };
+if (typeof module !== 'undefined') { module.exports = MastodonAPI; };
