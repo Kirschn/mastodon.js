@@ -171,3 +171,6 @@ var MastodonAPI = function(config) {
         }
     };
 };
+
+// node.js
+if (module !== undefined) { module.exports = MastodonAPI; };
