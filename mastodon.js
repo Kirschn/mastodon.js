@@ -98,7 +98,11 @@ var MastodonAPI = function(config) {
         stream: function (streamType, onData) {
             // Event Stream Support
             // websocket streaming is undocumented. i had to reverse engineer the fucking web client.
-            // streamType is either public or the federated tl oder user for notifications, home tl, etc.
+            // streamType is either
+            // user for your local home TL and notifications
+            // public for your federated TL
+            // public:local for your home TL
+            // hashtag&tag=fuckdonaldtrump for the stream of #fuckdonaldtrump
             // callback gets called whenever new data ist recieved
             // callback { event: (eventtype), payload: {mastodon object as described in the api docs} }
             // eventtype could be notification (=notification) or update (= new toot in TL)
