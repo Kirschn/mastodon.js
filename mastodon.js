@@ -50,14 +50,60 @@ var MastodonAPI = function(config) {
                 url: apiBase + endpoint + queryStringAppend,
                 type: "GET",
                 headers: {"Authorization": "Bearer " + config.api_user_token},
-                success: function(data, textStatus) {
+                success: function(data, textStatus, xhr) {
 
                     //weeey it was successful
                     console.log("Successful GET API request to " +apiBase+endpoint);
+                    responce_headers = xhr.getAllResponseHeaders();
 
                     //aaand start the callback
                     //might have to check what "textStatus" actually is, jquery docs are a bit dodgy
                     callback(data,textStatus);
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
+                }
+            });
+        },
+        getOther: function (domainAndEndpoint) {
+
+            var queryData, callback,
+                queryStringAppend = "?";
+
+            // check with which arguments we're supplied
+            if (typeof arguments[1] === "function") {
+                queryData = {};
+                callback = arguments[1];
+            } else {
+                queryData = arguments[1];
+                callback = arguments[2];
+            }
+            // build queryData Object into a URL Query String
+            for (var i in queryData) {
+                if (queryData.hasOwnProperty(i)) {
+                    if (typeof queryData[i] === "string") {
+                        queryStringAppend += queryData[i] + "&";
+                    } else if (typeof queryData[i] === "object") {
+                        queryStringAppend += queryData[i].name + "="+ queryData[i].data + "&";
+                    }
+                }
+            }
+            // ajax function
+            $.ajax({
+                url: domainAndEndpoint + queryStringAppend,
+                type: "GET",
+                success: function(data, textStatus, xhr) {
+
+                    //weeey it was successful
+                    console.log("Successful GET API request to " +domainAndEndpoint);
+                    responce_headers = xhr.getAllResponseHeaders();
+
+                    //aaand start the callback
+                    //might have to check what "textStatus" actually is, jquery docs are a bit dodgy
+                    callback(data,textStatus);
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
                 }
             });
         },
@@ -80,8 +126,41 @@ var MastodonAPI = function(config) {
                 success: function(data, textStatus) {
                     console.log("Successful POST API request to " +apiBase+endpoint);
                     callback(data,textStatus)
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                    putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
                 }
             });
+        },
+        postMedia: function (endpoint) {
+
+            // for POST API calls
+            var postData, callback;
+            // check with which arguments we're supplied
+            if (typeof arguments[1] === "function") {
+                postData = {};
+                callback = arguments[1];
+            } else {
+                postData = arguments[1];
+                callback = arguments[2];
+            }
+
+            $.ajax({
+                url: apiBase + endpoint,
+                type: "POST",
+                data: postData,
+                contentType: false,
+                processData: false,
+                headers: {"Authorization": "Bearer " + config.api_user_token},
+                success: function(data, textStatus) {
+                    console.log("Successful POST API request to " +apiBase+endpoint);
+                    callback(data,textStatus)
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
+                }
+            });
+
         },
         delete: function (endpoint, callback) {
             // for DELETE API calls.
@@ -92,6 +171,9 @@ var MastodonAPI = function(config) {
                 success: function(data, textStatus) {
                     console.log("Successful DELETE API request to " +apiBase+endpoint);
                     callback(data,textStatus)
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
                 }
             });
         },
@@ -149,6 +231,9 @@ var MastodonAPI = function(config) {
                 success: function (data, textStatus) {
                     console.log("Registered Application: " + data);
                     callback(data);
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
                 }
             });
         },
@@ -170,6 +255,9 @@ var MastodonAPI = function(config) {
                 success: function (data, textStatus) {
                     console.log("Got Token: " + data);
                     callback(data);
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
                 }
             });
         }
