@@ -4,8 +4,50 @@
 // do whatever you want with it
 // but please don't hurt it (and keep this header)
 
+
 var MastodonAPI = function(config) {
     var apiBase = config.instance + "/api/v1/";
+
+
+    function checkArgs(args) {
+        if (typeof args[1] === "function") {
+          return ({ data: {}, callback: args[1] });
+        } else {
+          return ({ data: args[1], callback: args[2] });
+        }
+    }
+
+
+    function addAuthorizationHeader(headers, token) {
+      if (token) {
+        headers["Authorization"] = "Bearer " + token;
+      }
+
+      return headers;
+    }
+
+    function onAjaxSuccess(url, op, callback, logData) {
+      return function(data, textStatus, xhr) {
+        
+        console.log("Successful " + op + " API request to " + url,
+                    ", status: " + textStatus,
+                    ", HTTP status: " + xhr.status,
+                    ", data: " + (logData ? data : "<skipped>"));
+        callback(data, textStatus);
+
+      }
+    }
+
+    function onAjaxError(url, op) {
+      return function (xhr, textStatus, errorThrown) {
+        console.error("Failed " + op + " API request to " + url,
+                      ", status: " + textStatus,
+                      ", error: " + errorThrown,
+                      ", HTTP status: " + xhr.status,
+                      ", response JSON: " + xhr.responseJSON);
+      }
+    }
+
     return {
         setConfig: function (key, value) {
             // modify initial config afterwards
@@ -21,212 +63,68 @@ var MastodonAPI = function(config) {
             // endpoint, callback
             // or
             // endpoint, queryData, callback
-            // where querydata is an object {["paramname1", "paramvalue1], ["paramname2","paramvalue2"]}
+            // where queryData is an object { paramname1: "paramvalue1", paramname2: paramvalue2 }
 
-            // variables
-            var queryData, callback,
-                queryStringAppend = "?";
+            var args = checkArgs(arguments);
+            var queryData = args.data;
+            var callback = args.callback;
+            var url = apiBase + endpoint;
 
-            // check with which arguments we're supplied
-            if (typeof arguments[1] === "function") {
-                queryData = {};
-                callback = arguments[1];
-            } else {
-                queryData = arguments[1];
-                callback = arguments[2];
-            }
-            // build queryData Object into a URL Query String
-            for (var i in queryData) {
-                if (queryData.hasOwnProperty(i)) {
-                    if (typeof queryData[i] === "string") {
-                        queryStringAppend += queryData[i] + "&";
-                    } else if (typeof queryData[i] === "object") {
-                        queryStringAppend += queryData[i].name + "="+ queryData[i].data + "&";
-                    }
-                }
-            }
             // ajax function
-            $.ajax({
-                url: apiBase + endpoint + queryStringAppend,
+            return $.ajax({
+                url: url,
                 type: "GET",
-                headers: {"Authorization": "Bearer " + config.api_user_token},
-                success: function(data, textStatus, xhr) {
-
-                    //weeey it was successful
-                    console.log("Successful GET API request to " +apiBase+endpoint);
-                    responce_headers = xhr.getAllResponseHeaders();
-
-                    //aaand start the callback
-                    //might have to check what "textStatus" actually is, jquery docs are a bit dodgy
-                    callback(data,textStatus);
-                },
-                error: function(xhr, textStatus, errorThrown) {
-                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
-                }
-            });
-        },
-        getArray: function (endpoint) {
-            // for GET API calls
-            // can be called with two or three parameters
-            // endpoint, callback
-            // or
-            // endpoint, queryData, callback
-            // where querydata is an object {["paramname1", "paramvalue1], ["paramname2","paramvalue2"]}
-
-            // variables
-            var queryData, callback,
-                queryStringAppend = "?";
-
-            // check with which arguments we're supplied
-            if (typeof arguments[1] === "function") {
-                queryData = {};
-                callback = arguments[1];
-            } else {
-                queryData = arguments[1];
-                callback = arguments[2];
-            }
-            // build queryData Object into a URL Query String
-            for (var i in queryData) {
-                if (queryData.hasOwnProperty(i)) {
-                    if (typeof queryData[i] === "string") {
-                        queryStringAppend += queryData[i] + "&";
-                    } else if (typeof queryData[i] === "object") {
-                        for ( var j in queryData[i].data ){
-                          queryStringAppend += queryData[i].name + "[]="+ queryData[i].data[j] + "&";
-                        }
-                    }
-                }
-            }
-            // ajax function
-            $.ajax({
-                url: apiBase + endpoint + queryStringAppend,
-                type: "GET",
-                headers: {"Authorization": "Bearer " + config.api_user_token},
-                success: function(data, textStatus, xhr) {
-
-                    //weeey it was successful
-                    console.log("Successful GET API request to " +apiBase+endpoint);
-                    responce_headers = xhr.getAllResponseHeaders();
-
-                    //aaand start the callback
-                    //might have to check what "textStatus" actually is, jquery docs are a bit dodgy
-                    callback(data,textStatus);
-                },
-                error: function(xhr, textStatus, errorThrown) {
-                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
-                }
-            });
-        },
-        getOther: function (domainAndEndpoint) {
-
-            var queryData, callback,
-                queryStringAppend = "?";
-
-            // check with which arguments we're supplied
-            if (typeof arguments[1] === "function") {
-                queryData = {};
-                callback = arguments[1];
-            } else {
-                queryData = arguments[1];
-                callback = arguments[2];
-            }
-            // build queryData Object into a URL Query String
-            for (var i in queryData) {
-                if (queryData.hasOwnProperty(i)) {
-                    if (typeof queryData[i] === "string") {
-                        queryStringAppend += queryData[i] + "&";
-                    } else if (typeof queryData[i] === "object") {
-                        queryStringAppend += queryData[i].name + "="+ queryData[i].data + "&";
-                    }
-                }
-            }
-            // ajax function
-            $.ajax({
-                url: domainAndEndpoint + queryStringAppend,
-                type: "GET",
-                success: function(data, textStatus, xhr) {
-
-                    //weeey it was successful
-                    console.log("Successful GET API request to " +domainAndEndpoint);
-                    responce_headers = xhr.getAllResponseHeaders();
-
-                    //aaand start the callback
-                    //might have to check what "textStatus" actually is, jquery docs are a bit dodgy
-                    callback(data,textStatus);
-                },
-                error: function(xhr, textStatus, errorThrown) {
-                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
-                }
+                data: queryData,
+                headers: addAuthorizationHeader({}, config.api_user_token),
+                success: onAjaxSuccess(url, "GET", callback, false),
+                error: onAjaxError(url, "GET")
             });
         },
         post: function (endpoint) {
             // for POST API calls
-            var postData, callback;
-            // check with which arguments we're supplied
-            if (typeof arguments[1] === "function") {
-                postData = {};
-                callback = arguments[1];
-            } else {
-                postData = arguments[1];
-                callback = arguments[2];
-            }
+            var args = checkArgs(arguments);
+            var postData = args.data;
+            var callback = args.callback;
+            var url = apiBase + endpoint;
+
             $.ajax({
-                url: apiBase + endpoint,
+                url: url,
                 type: "POST",
                 data: postData,
-                headers: {"Authorization": "Bearer " + config.api_user_token},
-                success: function(data, textStatus) {
-                    console.log("Successful POST API request to " +apiBase+endpoint);
-                    callback(data,textStatus)
-                },
-                error: function(xhr, textStatus, errorThrown) {
-                    putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
-                }
+                headers: addAuthorizationHeader({}, config.api_user_token),
+                success: onAjaxSuccess(url, "POST", callback, false),
+                error: onAjaxError(url, "POST")
             });
         },
         postMedia: function (endpoint) {
 
             // for POST API calls
-            var postData, callback;
-            // check with which arguments we're supplied
-            if (typeof arguments[1] === "function") {
-                postData = {};
-                callback = arguments[1];
-            } else {
-                postData = arguments[1];
-                callback = arguments[2];
-            }
+            var args = checkArgs(arguments);
+            var postData = args.data;
+            var callback = args.callback;
+            var url = apiBase + endpoint;
 
             $.ajax({
-                url: apiBase + endpoint,
+                url: url,
                 type: "POST",
                 data: postData,
                 contentType: false,
                 processData: false,
-                headers: {"Authorization": "Bearer " + config.api_user_token},
-                success: function(data, textStatus) {
-                    console.log("Successful POST API request to " +apiBase+endpoint);
-                    callback(data,textStatus)
-                },
-                error: function(xhr, textStatus, errorThrown) {
-                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
-                }
+                headers: addAuthorizationHeader({}, config.api_user_token),
+                success: onAjaxSuccess(url, "POST MEDIA", callback, false),
+                error: onAjaxError(url, "POST MEDIA")
             });
 
         },
         delete: function (endpoint, callback) {
             // for DELETE API calls.
+            var url = apiBase + endpoint;
             $.ajax({
-                url: apiBase + endpoint,
+                url: url,
                 type: "DELETE",
-                headers: {"Authorization": "Bearer " + config.api_user_token},
-                success: function(data, textStatus) {
-                    console.log("Successful DELETE API request to " +apiBase+endpoint);
-                    callback(data,textStatus)
-                },
-                error: function(xhr, textStatus, errorThrown) {
-                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
-                }
+                headers: addAuthorizationHeader({}, config.api_user_token),
+                success: onAjaxSuccess(url, "DELETE", callback, false),
+                error: onAjaxError(url, "DELETE")
             });
         },
         stream: function (streamType, onData) {
@@ -271,8 +169,9 @@ var MastodonAPI = function(config) {
             if (typeof scopes !== "string") {
                 scopes = scopes.join(" ");
             }
+            var url = apiBase + "apps";
             $.ajax({
-                url: apiBase + "apps",
+                url: url,
                 type: "POST",
                 data: {
                     client_name: client_name,
@@ -280,13 +179,8 @@ var MastodonAPI = function(config) {
                     scopes: scopes,
                     website: website
                 },
-                success: function (data, textStatus) {
-                    console.log("Registered Application: " + data);
-                    callback(data);
-                },
-                error: function(xhr, textStatus, errorThrown) {
-                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
-                }
+                success: onAjaxSuccess(url, "REGISTER", callback, true),
+                error: onAjaxError(url, "REGISTER")
             });
         },
         generateAuthLink: function (client_id, redirect_uri, responseType, scopes) {
@@ -294,8 +188,9 @@ var MastodonAPI = function(config) {
                     "&response_type=" + responseType + "&scope=" + scopes.join("+");
         },
         getAccessTokenFromAuthCode: function (client_id, client_secret, redirect_uri, code, callback) {
+            var url = config.instance + "/oauth/token";
             $.ajax({
-                url: config.instance + "/oauth/token",
+                url: url,
                 type: "POST",
                 data: {
                     client_id: client_id,
@@ -304,13 +199,8 @@ var MastodonAPI = function(config) {
                     grant_type: "authorization_code",
                     code: code
                 },
-                success: function (data, textStatus) {
-                    console.log("Got Token: " + data);
-                    callback(data);
-                },
-                error: function(xhr, textStatus, errorThrown) {
-                  putMessage(`[${xhr.status}] ${xhr.responseJSON['error']}`);
-                }
+                success: onAjaxSuccess(url, "TOKEN", callback, true),
+                error: onAjaxError(url, "TOKEN") 
             });
         }
     };
