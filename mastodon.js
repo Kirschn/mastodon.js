@@ -8,7 +8,6 @@
 var MastodonAPI = function(config) {
     var apiBase = config.instance + "/api/v1/";
 
-
     function checkArgs(args) {
         if (typeof args[1] === "function") {
           return ({ data: {}, callback: args[1] });
@@ -16,7 +15,6 @@ var MastodonAPI = function(config) {
           return ({ data: args[1], callback: args[2] });
         }
     }
-
 
     function addAuthorizationHeader(headers, token) {
       if (token) {
@@ -28,13 +26,13 @@ var MastodonAPI = function(config) {
 
     function onAjaxSuccess(url, op, callback, logData) {
       return function(data, textStatus, xhr) {
-        
         console.log("Successful " + op + " API request to " + url,
                     ", status: " + textStatus,
                     ", HTTP status: " + xhr.status,
-                    ", data: " + (logData ? data : "<skipped>"));
-        callback(data, textStatus);
-
+                    ", data: " + (logData ? JSON.stringify(data) : "<skipped>"));
+        if (typeof callback != 'undefined') {
+          callback(data, textStatus);
+        }
       }
     }
 
@@ -44,7 +42,7 @@ var MastodonAPI = function(config) {
                       ", status: " + textStatus,
                       ", error: " + errorThrown,
                       ", HTTP status: " + xhr.status,
-                      ", response JSON: " + xhr.responseJSON);
+                      ", response JSON: " + JSON.stringify(xhr.responseJSON));
       }
     }
 
@@ -87,7 +85,7 @@ var MastodonAPI = function(config) {
             var callback = args.callback;
             var url = apiBase + endpoint;
 
-            $.ajax({
+            return $.ajax({
                 url: url,
                 type: "POST",
                 data: postData,
@@ -97,14 +95,13 @@ var MastodonAPI = function(config) {
             });
         },
         postMedia: function (endpoint) {
-
             // for POST API calls
             var args = checkArgs(arguments);
             var postData = args.data;
             var callback = args.callback;
             var url = apiBase + endpoint;
 
-            $.ajax({
+            return $.ajax({
                 url: url,
                 type: "POST",
                 data: postData,
@@ -119,7 +116,7 @@ var MastodonAPI = function(config) {
         delete: function (endpoint, callback) {
             // for DELETE API calls.
             var url = apiBase + endpoint;
-            $.ajax({
+            return $.ajax({
                 url: url,
                 type: "DELETE",
                 headers: addAuthorizationHeader({}, config.api_user_token),
@@ -170,7 +167,7 @@ var MastodonAPI = function(config) {
                 scopes = scopes.join(" ");
             }
             var url = apiBase + "apps";
-            $.ajax({
+            return $.ajax({
                 url: url,
                 type: "POST",
                 data: {
@@ -189,7 +186,7 @@ var MastodonAPI = function(config) {
         },
         getAccessTokenFromAuthCode: function (client_id, client_secret, redirect_uri, code, callback) {
             var url = config.instance + "/oauth/token";
-            $.ajax({
+            return $.ajax({
                 url: url,
                 type: "POST",
                 data: {
