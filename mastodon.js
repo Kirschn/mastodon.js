@@ -5,45 +5,49 @@
 // but please don't hurt it (and keep this header)
 
 
-var MastodonAPI = function(config) {
+var MastodonAPI = function (config) {
     var apiBase = config.instance + "/api/v1/";
 
     function checkArgs(args) {
+        var checkedArgs;
         if (typeof args[1] === "function") {
-          return ({ data: {}, callback: args[1] });
+            checkedArgs = { data: {}, callback: args[1] };
         } else {
-          return ({ data: args[1], callback: args[2] });
+            checkedArgs = { data: args[1], callback: args[2] };
         }
+
+        return checkedArgs;
     }
 
     function addAuthorizationHeader(headers, token) {
-      if (token) {
-        headers["Authorization"] = "Bearer " + token;
-      }
+        if (token) {
+            headers.Authorization = "Bearer " + token;
+        }
 
-      return headers;
+        return headers;
     }
 
     function onAjaxSuccess(url, op, callback, logData) {
-      return function(data, textStatus, xhr) {
-        console.log("Successful " + op + " API request to " + url,
-                    ", status: " + textStatus,
-                    ", HTTP status: " + xhr.status,
-                    ", data: " + (logData ? JSON.stringify(data) : "<skipped>"));
-        if (typeof callback != 'undefined') {
-          callback(data, textStatus);
-        }
-      }
+        return function (data, textStatus, xhr) {
+            console.log("Successful " + op + " API request to " + url,
+                      ", status: " + textStatus,
+                      ", HTTP status: " + xhr.status,
+                      ", data: " + (logData ? JSON.stringify(data) : "<skipped>"));
+
+            if (typeof callback !== "undefined") {
+                callback(data, textStatus);
+            }
+        };
     }
 
     function onAjaxError(url, op) {
-      return function (xhr, textStatus, errorThrown) {
-        console.error("Failed " + op + " API request to " + url,
-                      ", status: " + textStatus,
-                      ", error: " + errorThrown,
-                      ", HTTP status: " + xhr.status,
-                      ", response JSON: " + JSON.stringify(xhr.responseJSON));
-      }
+        return function (xhr, textStatus, errorThrown) {
+            console.error("Failed " + op + " API request to " + url,
+                          ", status: " + textStatus,
+                          ", error: " + errorThrown,
+                          ", HTTP status: " + xhr.status,
+                          ", response JSON: " + JSON.stringify(xhr.responseJSON));
+        };
     }
 
     return {
@@ -51,8 +55,8 @@ var MastodonAPI = function(config) {
             // modify initial config afterwards
             config[key] = value;
         },
-        getConfig: function(key) {
-            //get config key
+        getConfig: function (key) {
+            // get config key
             return config[key];
         },
         get: function (endpoint) {
@@ -111,7 +115,6 @@ var MastodonAPI = function(config) {
                 success: onAjaxSuccess(url, "POST MEDIA", callback, false),
                 error: onAjaxError(url, "POST MEDIA")
             });
-
         },
         delete: function (endpoint, callback) {
             // for DELETE API calls.
@@ -136,7 +139,7 @@ var MastodonAPI = function(config) {
             // callback { event: (eventtype), payload: {mastodon object as described in the api docs} }
             // eventtype could be notification (=notification) or update (= new toot in TL)
             var es = new WebSocket("wss://" + apiBase.substr(8)
-                +"streaming?access_token=" + config.api_user_token + "&stream=" + streamType);
+                + "streaming?access_token=" + config.api_user_token + "&stream=" + streamType);
             var listener = function (event) {
                 console.log("Got Data from Stream " + streamType);
                 event = JSON.parse(event.data);
@@ -144,11 +147,9 @@ var MastodonAPI = function(config) {
                 onData(event);
             };
             es.onmessage = listener;
-
-
         },
         registerApplication: function (client_name, redirect_uri, scopes, website, callback) {
-            //register a new application
+            // register a new application
 
             // OAuth Auth flow:
             // First register the application
@@ -157,12 +158,11 @@ var MastodonAPI = function(config) {
             // getAccessTokenFromAuthCode. Note: scopes has to be an array, every time!
             // For example ["read", "write"]
 
-            //determine which parameters we got
+            // determine which parameters we got
             if (website === null) {
                 website = "";
             }
             // build scope array to string for the api request
-            var scopeBuild = "";
             if (typeof scopes !== "string") {
                 scopes = scopes.join(" ");
             }
@@ -197,11 +197,11 @@ var MastodonAPI = function(config) {
                     code: code
                 },
                 success: onAjaxSuccess(url, "TOKEN", callback, true),
-                error: onAjaxError(url, "TOKEN") 
+                error: onAjaxError(url, "TOKEN")
             });
         }
     };
 };
 
 // node.js
-if (typeof module !== 'undefined') { module.exports = MastodonAPI; };
+if (typeof module !== "undefined") { module.exports = MastodonAPI; }
