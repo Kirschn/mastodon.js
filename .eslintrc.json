@@ -1,0 +1,23 @@
+{
+    "extends": "airbnb-base",
+    "plugins": [
+        "import"
+    ],
+    "env": {
+       "browser": true,
+      "jquery": true
+    },
+    "rules": {
+      "no-var": "off",
+      "indent": ["error", 4],
+      "prefer-template": "off",
+      "quotes": ["error", "double"],
+      "object-shorthand": "off",
+      "no-param-reassign": "off",
+      "prefer-rest-params": "off",
+      "comma-dangle": "off",
+      "max-len": "off",
+      "camelcase": "off",
+      "vars-on-top": "off"
+    }
+}

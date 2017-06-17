@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-	<head>
+    <head>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
         <script src="mastodon.js"></script>
         <script>
@@ -10,7 +10,7 @@
             var api = new MastodonAPI({
                 instance: "https://pleasehug.me",
                 api_user_token: ""
-			});
+            });
 
             //
             // BASIC REST FUNCTIONS
@@ -24,10 +24,10 @@
                 //sidenote: please do not actually execute this request, you could be bullied by your friends
             });
 
-            api.get("accounts/1/following", [
-                ["since_id", 420],
-                ["max_id", 1337]
-            ], function(data) {
+            api.get("accounts/1/following", {
+                since_id: 420,
+                max_id: 1337
+            }, function(data) {
                 // returns all users account id 1 is following in the id range from 420 to 1337
                 // you don't have to supply the parameters, you can also just go with .get(endpoint, callback)
             });
@@ -109,8 +109,8 @@
                 )
             }
 
-		</script>
-	</head>
-	<body>
-	</body>
+        </script>
+    </head>
+    <body>
+    </body>
 </html>
