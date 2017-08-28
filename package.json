@@ -22,5 +22,8 @@
   "bugs": {
     "url": "https://github.com/Kirschn/mastodon.js/issues"
   },
-  "homepage": "https://github.com/Kirschn/mastodon.js#readme"
+  "homepage": "https://github.com/Kirschn/mastodon.js#readme",
+  "devDependencies": {
+    "eslint": "^4.4.1"
+  }
 }
