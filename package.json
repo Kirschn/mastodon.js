@@ -14,8 +14,8 @@
     "mastodon-api",
     "mastodon-apis",
     "mastodon",
-    "rest-api"
-    "streaming",
+    "rest-api",
+    "streaming"
   ],
   "author": "Kirschn",
   "license": "Apache-2.0",
