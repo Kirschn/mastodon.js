@@ -1,0 +1,29 @@
+{
+  "name": "mastodon.js",
+  "version": "1.0.0",
+  "description": "Javascript Mastodon API Client Library for Browser Clients",
+  "main": "mastodon.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kirschn/mastodon.js.git"
+  },
+  "keywords": [
+    "mastodon-api",
+    "mastodon-apis",
+    "mastodon",
+    "rest-api",
+    "streaming"
+  ],
+  "author": "Kirschn",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Kirschn/mastodon.js/issues"
+  },
+  "homepage": "https://github.com/Kirschn/mastodon.js#readme",
+  "devDependencies": {
+    "eslint": "^4.4.1"
+  }
+}
