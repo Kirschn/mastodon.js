@@ -82,6 +82,22 @@ var MastodonAPI = function (config) {
                 error: onAjaxError(url, "GET")
             });
         },
+        patch: function (endpoint) {
+            // for PATCH API calls
+            var args = checkArgs(arguments);
+            var postData = args.data;
+            var callback = args.callback;
+            var url = apiBase + endpoint;
+
+            return $.ajax({
+                url: url,
+                type: "PATCH",
+                data: postData,
+                headers: addAuthorizationHeader({}, config.api_user_token),
+                success: onAjaxSuccess(url, "POST", callback, false),
+                error: onAjaxError(url, "POST")
+            });
+        },
         post: function (endpoint) {
             // for POST API calls
             var args = checkArgs(arguments);
