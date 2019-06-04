@@ -8,6 +8,38 @@
 var MastodonAPI = function (config) {
     var apiBase = config.instance + "/api/v1/";
 
+    function ajax(method, url, onSuccess, onError, data = null, headers = null) {
+        let allowedMethods = ["GET", "POST", "PATCH", "DELETE"];
+        if (allowedMethods.indexOf(method) < 0) {
+            onError('Method not supported');
+            return;
+        }
+        var xhr = new XMLHttpRequest();
+        xhr.open(method, url, true);
+        if (headers !== null && Object.prototype.toString.call(headers) === '[object Object]'){
+            console.log(headers);
+            let headerKeys = Object.keys(headers);
+            for (var idx =0; idx < headerKeys.length; idx +=1){
+                var headerKey = headerKeys[idx];
+                var headerVal = headers[headerKey];
+                xhr.setRequestHeader(headerKey, headerVal);
+            }
+        }
+        xhr.onload = function () {
+        if (xhr.readyState == 4 && (xhr.status >= 200 && xhr.status < 400)) {
+                onSuccess(xhr);
+            } else {
+                onError(xhr);
+            }
+        };
+        if (Object.prototype.toString.call(data) === '[object Object]') {
+            console.log(data);
+            xhr.send(JSON.stringify(data));
+        } else {
+            xhr.send(data);
+        }
+    }
+
     function checkArgs(args) {
         var checkedArgs;
         if (typeof args[1] === "function") {
@@ -27,27 +59,22 @@ var MastodonAPI = function (config) {
         return headers;
     }
 
-    function onAjaxSuccess(url, op, callback, logData) {
-        return function (data, textStatus, xhr) {
-            console.log("Successful " + op + " API request to " + url,
-                      ", status: " + textStatus,
-                      ", HTTP status: " + xhr.status,
-                      ", data: " + (logData ? JSON.stringify(data) : "<skipped>"));
-
-            if (typeof callback !== "undefined") {
-                callback(data, textStatus);
-            }
-        };
+    function onAjaxSuccess(url, op, xhr, callback, logData) {
+        console.log("Successful " + op + " API request to " + url,
+            ", status: " + xhr.statusText,
+            ", HTTP status: " + xhr.status,
+            ", data: " + (logData ? (JSON.stringify(xhr.responseJSON) || xhr.responseText) : "<skipped>"));
+        if (typeof callback !== "undefined") {
+            callback(JSON.parse(xhr.responseText) || xhr.statusText);
+        }
     }
 
-    function onAjaxError(url, op) {
-        return function (xhr, textStatus, errorThrown) {
-            console.error("Failed " + op + " API request to " + url,
-                          ", status: " + textStatus,
-                          ", error: " + errorThrown,
-                          ", HTTP status: " + xhr.status,
-                          ", response JSON: " + JSON.stringify(xhr.responseJSON));
-        };
+    function onAjaxError(url, op, xhr) {
+        console.error("Failed " + op + " API request to " + url,
+            ", status: " + xhr.statusText,
+            ", error: " + xhr.responseText,
+            ", HTTP status: " + xhr.status,
+            ", response JSON: " + (JSON.stringify(xhr.responseJSON)  || 'no json'));
     }
 
     return {
@@ -57,7 +84,10 @@ var MastodonAPI = function (config) {
         },
         getConfig: function (key) {
             // get config key
-            return config[key];
+            if (Object.keys(config).indexOf('key') > -1){
+                return config[key];
+            }
+            return null;
         },
         get: function (endpoint) {
             // for GET API calls
@@ -71,32 +101,31 @@ var MastodonAPI = function (config) {
             var queryData = args.data;
             var callback = args.callback;
             var url = apiBase + endpoint;
-
-            // ajax function
-            return $.ajax({
-                url: url,
-                type: "GET",
-                data: queryData,
-                headers: addAuthorizationHeader({}, config.api_user_token),
-                success: onAjaxSuccess(url, "GET", callback, false),
-                error: onAjaxError(url, "GET")
-            });
+            return ajax(
+                "GET",
+                url,
+                function(xhr) {onAjaxSuccess(url, "GET", xhr, callback, false);},
+                function(xhr) {onAjaxError(url, "GET", xhr);},
+                queryData,
+                addAuthorizationHeader({}, config.api_user_token)
+            );
         },
         patch: function (endpoint) {
             // for PATCH API calls
             var args = checkArgs(arguments);
-            var postData = args.data;
+            var patchData = args.data;
             var callback = args.callback;
             var url = apiBase + endpoint;
 
-            return $.ajax({
-                url: url,
-                type: "PATCH",
-                data: postData,
-                headers: addAuthorizationHeader({}, config.api_user_token),
-                success: onAjaxSuccess(url, "POST", callback, false),
-                error: onAjaxError(url, "POST")
-            });
+            return ajax(
+                "PATCH",
+                url,
+                function(xhr) {onAjaxSuccess(url, "PATCH", xhr, callback, false);},
+                function(xhr) {onAjaxError(url, "PATCH", xhr);},
+                patchData,
+                addAuthorizationHeader({}, config.api_user_token),
+                {'Content-Type': 'application/json'}
+            );
         },
         post: function (endpoint) {
             // for POST API calls
@@ -105,43 +134,51 @@ var MastodonAPI = function (config) {
             var callback = args.callback;
             var url = apiBase + endpoint;
 
-            return $.ajax({
-                url: url,
-                type: "POST",
-                data: postData,
-                headers: addAuthorizationHeader({}, config.api_user_token),
-                success: onAjaxSuccess(url, "POST", callback, false),
-                error: onAjaxError(url, "POST")
-            });
+            return ajax(
+                "POST",
+                url,
+                function(xhr) {onAjaxSuccess(url, "POST", xhr, callback, false);},
+                function(xhr) {onAjaxError(url, "POST", xhr);},
+                postData,
+                addAuthorizationHeader({}, config.api_user_token),
+                {'Content-Type': 'application/json'}
+            );
         },
         postMedia: function (endpoint) {
             // for POST API calls
+            // args.data: file(s) : document.getElementById("myfile").files[0];
             var args = checkArgs(arguments);
             var postData = args.data;
             var callback = args.callback;
             var url = apiBase + endpoint;
-
-            return $.ajax({
-                url: url,
-                type: "POST",
-                data: postData,
-                contentType: false,
-                processData: false,
-                headers: addAuthorizationHeader({}, config.api_user_token),
-                success: onAjaxSuccess(url, "POST MEDIA", callback, false),
-                error: onAjaxError(url, "POST MEDIA")
-            });
+            var formData = new FormData();
+            if (Object.prototype.toString.call(data) === '[object Array]') {
+                for (var idx =0; idx < postData.length; idx +=1){
+                    formData.append(postData[idx]);
+                }
+            } else {
+                formData.append(postData);
+            }
+            return ajax(
+                "POST",
+                url,
+                function(xhr) {onAjaxSuccess(url, "POST MEDIA", xhr, callback, false);},
+                function(xhr) {onAjaxError(url, "POST MEDIA", xhr);},
+                formData,
+                addAuthorizationHeader({}, config.api_user_token)
+            );
         },
         delete: function (endpoint, callback) {
             // for DELETE API calls.
             var url = apiBase + endpoint;
-            return $.ajax({
-                url: url,
-                type: "DELETE",
-                headers: addAuthorizationHeader({}, config.api_user_token),
-                success: onAjaxSuccess(url, "DELETE", callback, false),
-                error: onAjaxError(url, "DELETE")
-            });
+            return ajax(
+                "DELETE",
+                url,
+                function(xhr) {onAjaxSuccess(url, "DELETE", xhr, callback, false);},
+                function(xhr) {onAjaxError(url, "DELETE", xhr);},
+                null,
+                addAuthorizationHeader({}, config.api_user_token)
+            );
         },
         stream: function (streamType, onData) {
             // Event Stream Support
@@ -154,8 +191,8 @@ var MastodonAPI = function (config) {
             // callback gets called whenever new data ist recieved
             // callback { event: (eventtype), payload: {mastodon object as described in the api docs} }
             // eventtype could be notification (=notification) or update (= new toot in TL)
-            var es = new WebSocket("wss://" + apiBase.substr(8)
-                + "streaming?access_token=" + config.api_user_token + "&stream=" + streamType);
+            var es = new WebSocket("wss://" + apiBase.substr(8) + 
+                "streaming?access_token=" + config.api_user_token + "&stream=" + streamType);
             var listener = function (event) {
                 console.log("Got Data from Stream " + streamType);
                 event = JSON.parse(event.data);
@@ -183,18 +220,20 @@ var MastodonAPI = function (config) {
                 scopes = scopes.join(" ");
             }
             var url = apiBase + "apps";
-            return $.ajax({
-                url: url,
-                type: "POST",
-                data: {
+
+            return ajax(
+                "POST",
+                url,
+                function(xhr) {onAjaxSuccess(url, "REGISTER", xhr, callback, true);},
+                function(xhr) {onAjaxError(url, "REGISTER", xhr);},
+                {
                     client_name: client_name,
                     redirect_uris: redirect_uri,
                     scopes: scopes,
                     website: website
                 },
-                success: onAjaxSuccess(url, "REGISTER", callback, true),
-                error: onAjaxError(url, "REGISTER")
-            });
+                {'Content-Type': 'application/json'}
+            );
         },
         generateAuthLink: function (client_id, redirect_uri, responseType, scopes) {
             return config.instance + "/oauth/authorize?client_id=" + client_id + "&redirect_uri=" + redirect_uri +
@@ -202,19 +241,21 @@ var MastodonAPI = function (config) {
         },
         getAccessTokenFromAuthCode: function (client_id, client_secret, redirect_uri, code, callback) {
             var url = config.instance + "/oauth/token";
-            return $.ajax({
-                url: url,
-                type: "POST",
-                data: {
+
+            return ajax(
+                "POST",
+                url,
+                function(xhr) {onAjaxSuccess(url, "TOKEN", xhr, callback, true);},
+                function(xhr) {onAjaxError(url, "TOKEN", xhr);},
+                {
                     client_id: client_id,
                     client_secret: client_secret,
                     redirect_uri: redirect_uri,
                     grant_type: "authorization_code",
                     code: code
                 },
-                success: onAjaxSuccess(url, "TOKEN", callback, true),
-                error: onAjaxError(url, "TOKEN")
-            });
+                {'Content-Type': 'application/json'}
+            );
         }
     };
 };

@@ -1,92 +1,95 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
         <script src="mastodon.js"></script>
         <script>
             // initialize library
             // api_user_token has not to be set at this point if you don't have one yet
-            // NOTE: It needs jQuery!
+            var token = window.localStorage.getItem("mastodon_client_token");
+            var access_token = token ? (JSON.parse(token)["access_token"] || null) : null;
             var api = new MastodonAPI({
                 instance: "https://pleasehug.me",
-                api_user_token: ""
+                api_user_token: token ? (JSON.parse(token)["access_token"] || null) : null
             });
+            if (api.getConfig["api_user_token"] !== null) {
+                //
+                // BASIC REST FUNCTIONS
+                // you can use every api endpoint from https://github.com/tootsuite/documentation/blob/master/Using-the-API/API.md
+                // https://docs.joinmastodon.org/api/
 
-            //
-            // BASIC REST FUNCTIONS
-            // you can use every api endpoint from https://github.com/tootsuite/documentation/blob/master/Using-the-API/API.md
-            //
+                api.post("statuses", {status:"i like pineapple on pizza"}, function (data) {
+                    // will be called if the toot was successful
+                    // data is the http response object
 
-            api.post("statuses", {status:"i like pineapple on pizza"}, function (data) {
-                // will be called if the toot was successful
-                // data is the http response object
+                    //sidenote: please do not actually execute this request, you could be bullied by your friends
+                });
 
-                //sidenote: please do not actually execute this request, you could be bullied by your friends
-            });
+                api.get("accounts/1/following", {
+                    since_id: 420,
+                    max_id: 1337
+                }, function(data) {
+                    // returns all users account id 1 is following in the id range from 420 to 1337
+                    // you don't have to supply the parameters, you can also just go with .get(endpoint, callback)
+                });
 
-            api.get("accounts/1/following", {
-                since_id: 420,
-                max_id: 1337
-            }, function(data) {
-                // returns all users account id 1 is following in the id range from 420 to 1337
-                // you don't have to supply the parameters, you can also just go with .get(endpoint, callback)
-            });
-
-            api.delete("statuses/1", function (data) {
-                //deletes toot with id 1
-            });
-
-
-            //
-            // STREAMING
-            //
+                api.delete("statuses/1", function (data) {
+                    //deletes toot with id 1
+                });
 
 
-            //lets initialize a stream! stream types are
-            // user for your local home TL and notifications
-            // public for your federated TL
-            // public:local for your home TL
-            // hashtag&tag=fuckdonaldtrump for the stream of #fuckdonaldtrump
+                //
+                // STREAMING
+                //
 
-            api.stream("user", function(data) {
-                // data is an object containing two entries
-                // event determines which type of data you got
-                // payload is the actual data
-                // event can be notification or update
-                if (data.event === "notification") {
-                    // data.payload is a notification
-                } else if (data.event === "update") {
-                    // status update for one of your timelines
-                } else {
-                    // probably an error
-                }
-            })
+
+                //lets initialize a stream! stream types are
+                // user for your local home TL and notifications
+                // public for your federated TL
+                // public:local for your home TL
+                // hashtag&tag=fuckdonaldtrump for the stream of #fuckdonaldtrump
+
+                api.stream("user", function(data) {
+                    // data is an object containing two entries
+                    // event determines which type of data you got
+                    // payload is the actual data
+                    // event can be notification or update
+                    if (data.event === "notification") {
+                        // data.payload is a notification
+                    } else if (data.event === "update") {
+                        // status update for one of your timelines
+                    } else {
+                        // probably an error
+                    }
+                })
+            }
 
             // AUTH
 
             // first, we register our application
             // for this we need no key since we don't have one yet
-            api.registerApplication("my cool application name",
-                window.location.href, // redirect uri, we will need this later on
-                ["read", "write", "follow"], //scopes
-                "http://mycoolwebsite.com", //website on the login screen
+            if (!window.localStorage.getItem('mastodon_client_oauth_code') && window.location.href.indexOf("?code=") === -1) {
+                api.registerApplication("TestMastodonJS",
+                    window.location.href, // redirect uri, we will need this later on
+                    ["read", "write", "follow"], //scopes
+                    "http://mycoolwebsite.com", //website on the login screen
                 function(data) {
-                    // we got our application
-                    // lets save it to our browser storage
-                    localStorage.setItem("mastodon_client_id", data["client_id"]);
-                    localStorage.setItem("mastodon_client_secret", data["client_secret"]);
-                    localStorage.setItem("mastodon_client_redirect_uri", data["redirect_uri"]);
-                    // now, that we have saved our application data, generate an oauth url and send
-                    // our user to it!
-                    window.location.href = api.generateAuthLink(data["client_id"],
-                        data["redirect_uri"],
-                        "code", // oauth method
-                        ["read", "write", "follow"] //scopes
-                    );
+                        // we got our application
+                        // lets save it to our browser storage
+                        window.localStorage.setItem("mastodon_client_id", data["client_id"]);
+                        window.localStorage.setItem("mastodon_client_secret", data["client_secret"]);
+                        window.localStorage.setItem("mastodon_client_redirect_uri", data["redirect_uri"]);
+                        // now, that we have saved our application data, generate an oauth url and send
+                        // our user to it!
+                        window.location.href = api.generateAuthLink(data["client_id"],
+                            data["redirect_uri"],
+                            "code", // oauth method
+                            ["read", "write", "follow"] //scopes
+                        );
+                    }
 
-                }
-
-            );
+                );
+            }
             // now we get to the part why the redirect uri was set to our current location
             // we can just access to code from the url hash
             if (window.location.href.indexOf("?code=") !== -1) {
@@ -96,19 +99,19 @@
                 // nice variable clusterfuck, eh?
                 // we have everything needed to access our oauth token
                 api.getAccessTokenFromAuthCode(
-                    localStorage.getItem("mastodon_client_id"),
-                    localStorage.getItem("mastodon_client_secret"),
-                    localStorage.getItem("mastodon_client_redirect_uri"),
+                    window.localStorage.getItem("mastodon_client_id"),
+                    window.localStorage.getItem("mastodon_client_secret"),
+                    window.localStorage.getItem("mastodon_client_redirect_uri"),
                     authCode,
                     function(data) {
                         // AAAND DATA CONTAINS OUR TOKEN!
+                        window.localStorage.setItem("mastodon_client_token", JSON.stringify(data));
+                        api.setConfig(data['access_token']);
                         // use api.setConfig("api_user_token", tokenvar) to set it without having to reinit the entire
                         // library.
                     }
-
-                )
+                );
             }
-
         </script>
     </head>
     <body>
