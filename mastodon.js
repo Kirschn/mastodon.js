@@ -17,7 +17,7 @@ var MastodonAPI = function (config) {
         var xhr = new XMLHttpRequest();
         xhr.open(method, url, true);
         if (headers !== null && Object.prototype.toString.call(headers) === '[object Object]'){
-            console.log(headers);
+            // console.log(headers);
             let headerKeys = Object.keys(headers);
             for (var idx =0; idx < headerKeys.length; idx +=1){
                 var headerKey = headerKeys[idx];
@@ -33,7 +33,7 @@ var MastodonAPI = function (config) {
             }
         };
         if (Object.prototype.toString.call(data) === '[object Object]') {
-            console.log(data);
+            // console.log(data);
             xhr.send(JSON.stringify(data));
         } else {
             xhr.send(data);
